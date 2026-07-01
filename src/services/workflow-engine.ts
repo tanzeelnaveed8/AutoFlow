@@ -4,6 +4,113 @@ import { WorkflowNodeConfig, WorkflowNodeData, WorkflowEdgeData } from "@/types"
 
 type NodeOutput = Record<string, unknown>;
 
+export function interpolateTemplate(
+  template: string,
+  data: NodeOutput
+): string {
+  return template.replace(/\{\{(\w+(?:\.\w+)*)\}\}/g, (_, key: string) => {
+    const keys = key.split(".");
+    let value: unknown = data;
+    for (const k of keys) {
+      if (value && typeof value === "object") {
+        value = (value as Record<string, unknown>)[k];
+      } else {
+        value = undefined;
+        break;
+      }
+    }
+    return value !== undefined ? String(value) : `{{${key}}}`;
+  });
+}
+
+export async function executeNodeStandalone(
+  nodeType: string,
+  config: WorkflowNodeConfig,
+  input: NodeOutput
+): Promise<NodeOutput> {
+  switch (nodeType) {
+    case "manual-trigger":
+    case "webhook-trigger":
+      return { trigger: nodeType, data: input };
+
+    case "http-request": {
+      const url = config.url as string | undefined;
+      if (!url) throw new Error("URL is required");
+      const method = (config.method as string | undefined) ?? "GET";
+      const headers: Record<string, string> =
+        (config.headers as Record<string, string> | undefined) ?? {};
+      let body: string | undefined;
+      if (config.body && method !== "GET") {
+        body = interpolateTemplate(config.body as string, input);
+      }
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json", ...headers },
+        body,
+      });
+      const text = await res.text();
+      let data: unknown;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = text;
+      }
+      return { status: res.status, statusText: res.statusText, data };
+    }
+
+    case "openai": {
+      const apiKey = process.env.OPENAI_API_KEY;
+      if (!apiKey) throw new Error("OPENAI_API_KEY not configured");
+      const prompt = interpolateTemplate(
+        (config.prompt as string | undefined) ?? "",
+        input
+      );
+      const systemPrompt =
+        (config.systemPrompt as string | undefined) ?? "You are a helpful assistant.";
+      const model = (config.model as string | undefined) ?? "gpt-4o-mini";
+      const res = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: prompt },
+          ],
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        throw new Error(`OpenAI error: ${err}`);
+      }
+      const result = (await res.json()) as {
+        choices: Array<{ message: { content: string } }>;
+      };
+      return { content: result.choices[0]?.message?.content ?? "" };
+    }
+
+    case "delay": {
+      const ms = (config.delayMs as number | undefined) ?? 1000;
+      await new Promise((r) => setTimeout(r, ms));
+      return { delayed: true, ms };
+    }
+
+    case "log": {
+      const message = interpolateTemplate(
+        (config.message as string | undefined) ?? "Log node executed",
+        input
+      );
+      return { logged: true, message, input };
+    }
+
+    default:
+      throw new Error(`Unknown node type: ${nodeType}`);
+  }
+}
+
 export class WorkflowEngine {
   private executionId: string;
 
@@ -122,110 +229,12 @@ export class WorkflowEngine {
     node: WorkflowNodeData,
     input: NodeOutput
   ): Promise<NodeOutput> {
-    const config = node.config;
-
-    switch (node.type) {
-      case "manual-trigger":
-      case "webhook-trigger":
-        return { trigger: node.type, data: input };
-
-      case "http-request": {
-        const url = config.url;
-        if (!url) throw new Error("URL is required");
-
-        const method = config.method ?? "GET";
-        const headers: Record<string, string> = config.headers ?? {};
-
-        let body: string | undefined;
-        if (config.body && method !== "GET") {
-          body = this.interpolate(config.body, input);
-        }
-
-        const res = await fetch(url, {
-          method,
-          headers: { "Content-Type": "application/json", ...headers },
-          body,
-        });
-
-        const text = await res.text();
-        let data: unknown;
-        try {
-          data = JSON.parse(text);
-        } catch {
-          data = text;
-        }
-
-        return { status: res.status, statusText: res.statusText, data };
-      }
-
-      case "openai": {
-        const apiKey = process.env.OPENAI_API_KEY;
-        if (!apiKey) throw new Error("OPENAI_API_KEY not configured");
-
-        const prompt = this.interpolate(config.prompt ?? "", input);
-        const systemPrompt = config.systemPrompt ?? "You are a helpful assistant.";
-        const model = config.model ?? "gpt-4o-mini";
-
-        const res = await fetch("https://api.openai.com/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: prompt },
-            ],
-          }),
-        });
-
-        if (!res.ok) {
-          const err = await res.text();
-          throw new Error(`OpenAI error: ${err}`);
-        }
-
-        const result = (await res.json()) as {
-          choices: Array<{ message: { content: string } }>;
-        };
-        return { content: result.choices[0]?.message?.content ?? "" };
-      }
-
-      case "delay": {
-        const ms = config.delayMs ?? 1000;
-        await new Promise((r) => setTimeout(r, ms));
-        return { delayed: true, ms };
-      }
-
-      case "log": {
-        const message = this.interpolate(
-          config.message ?? "Log node executed",
-          input
-        );
-        console.log(`[Execution ${this.executionId}] ${message}`, input);
-        return { logged: true, message, input };
-      }
-
-      default:
-        throw new Error(`Unknown node type: ${node.type}`);
+    if (node.type === "log") {
+      const result = await executeNodeStandalone(node.type, node.config, input);
+      console.log(`[Execution ${this.executionId}]`, (result as { message: string }).message, input);
+      return result;
     }
-  }
-
-  private interpolate(template: string, data: NodeOutput): string {
-    return template.replace(/\{\{(\w+(?:\.\w+)*)\}\}/g, (_, key: string) => {
-      const keys = key.split(".");
-      let value: unknown = data;
-      for (const k of keys) {
-        if (value && typeof value === "object") {
-          value = (value as Record<string, unknown>)[k];
-        } else {
-          value = undefined;
-          break;
-        }
-      }
-      return value !== undefined ? String(value) : `{{${key}}}`;
-    });
+    return executeNodeStandalone(node.type, node.config, input);
   }
 
   private topologicalSort(

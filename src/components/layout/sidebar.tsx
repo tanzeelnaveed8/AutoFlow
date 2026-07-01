@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Workflow,
   History,
+  Puzzle,
   Settings,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -14,6 +15,7 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/workflows", label: "Workflows", icon: Workflow },
   { href: "/executions", label: "Executions", icon: History },
+  { href: "/integrations", label: "Integrations", icon: Puzzle },
 ];
 
 export function Sidebar() {

@@ -9,25 +9,7 @@ export type NodeType =
 export type ExecutionStatus = "PENDING" | "RUNNING" | "SUCCESS" | "FAILED";
 export type LogStatus = "PENDING" | "RUNNING" | "SUCCESS" | "FAILED";
 
-export interface WorkflowNodeConfig {
-  // webhook-trigger
-  webhookPath?: string;
-  // http-request
-  url?: string;
-  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
-  headers?: Record<string, string>;
-  body?: string;
-  // openai
-  model?: string;
-  prompt?: string;
-  systemPrompt?: string;
-  // delay
-  delayMs?: number;
-  // log
-  message?: string;
-  // label
-  label?: string;
-}
+export type WorkflowNodeConfig = Record<string, unknown>;
 
 export interface WorkflowNodeData {
   id: string;

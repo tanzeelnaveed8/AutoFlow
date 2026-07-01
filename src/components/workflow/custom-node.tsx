@@ -10,6 +10,7 @@ import {
   Clock,
   Terminal,
   Trash2,
+  AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -42,23 +43,41 @@ const ICON_COLOR_MAP: Record<string, string> = {
 
 const TRIGGER_TYPES = ["webhook-trigger", "manual-trigger"];
 
+type DebugStatus = "pending" | "running" | "success" | "failed";
+
 interface CustomNodeData {
   label: string;
   nodeType: string;
+  isInvalid?: boolean;
+  debugStatus?: DebugStatus;
   onDelete?: (id: string) => void;
 }
+
+const DEBUG_RING: Record<DebugStatus, string> = {
+  pending: "ring-2 ring-zinc-600 ring-offset-2 ring-offset-zinc-950 opacity-50",
+  running: "ring-2 ring-yellow-400 ring-offset-2 ring-offset-zinc-950 animate-pulse",
+  success: "ring-2 ring-emerald-400 ring-offset-2 ring-offset-zinc-950",
+  failed: "ring-2 ring-red-500 ring-offset-2 ring-offset-zinc-950",
+};
 
 export const CustomNode = memo(({ id, data, selected }: NodeProps) => {
   const nodeData = data as unknown as CustomNodeData;
   const Icon = ICON_MAP[nodeData.nodeType] ?? Terminal;
   const isTrigger = TRIGGER_TYPES.includes(nodeData.nodeType);
+  const isInvalid = !!nodeData.isInvalid;
+  const debugStatus = nodeData.debugStatus;
 
   return (
     <div
       className={cn(
         "relative min-w-45 rounded-xl border-2 p-4 transition-all shadow-lg",
-        COLOR_MAP[nodeData.nodeType] ?? "border-zinc-700 bg-zinc-800",
-        selected && "ring-2 ring-orange-500 ring-offset-2 ring-offset-zinc-950"
+        isInvalid
+          ? "border-red-500/70 bg-red-500/5"
+          : COLOR_MAP[nodeData.nodeType] ?? "border-zinc-700 bg-zinc-800",
+        debugStatus
+          ? DEBUG_RING[debugStatus]
+          : selected && !isInvalid && "ring-2 ring-orange-500 ring-offset-2 ring-offset-zinc-950",
+        !debugStatus && selected && isInvalid && "ring-2 ring-red-500 ring-offset-2 ring-offset-zinc-950"
       )}
     >
       {!isTrigger && (
@@ -73,13 +92,17 @@ export const CustomNode = memo(({ id, data, selected }: NodeProps) => {
         <div
           className={cn(
             "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
-            COLOR_MAP[nodeData.nodeType]
+            isInvalid
+              ? "bg-red-500/10"
+              : COLOR_MAP[nodeData.nodeType]
           )}
         >
           <Icon
             className={cn(
               "h-4 w-4",
-              ICON_COLOR_MAP[nodeData.nodeType] ?? "text-zinc-400"
+              isInvalid
+                ? "text-red-400"
+                : ICON_COLOR_MAP[nodeData.nodeType] ?? "text-zinc-400"
             )}
           />
         </div>
@@ -87,7 +110,7 @@ export const CustomNode = memo(({ id, data, selected }: NodeProps) => {
           <p className="text-sm font-semibold text-white truncate">
             {nodeData.label}
           </p>
-          <p className="text-xs text-zinc-400 capitalize">
+          <p className={cn("text-xs capitalize", isInvalid ? "text-red-400/70" : "text-zinc-400")}>
             {isTrigger ? "Trigger" : "Action"}
           </p>
         </div>
@@ -104,10 +127,16 @@ export const CustomNode = memo(({ id, data, selected }: NodeProps) => {
         )}
       </div>
 
+      {isInvalid && (
+        <div className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 shadow-md">
+          <AlertCircle className="h-3 w-3 text-white" />
+        </div>
+      )}
+
       <Handle
         type="source"
         position={Position.Right}
-        className="!h-3 !w-3 !border-2 !border-zinc-700 !bg-zinc-950"
+        className="h-3! w-3! border-2! border-zinc-700! bg-zinc-950!"
       />
     </div>
   );
