@@ -3,12 +3,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ReactFlow,
+  ReactFlowProvider,
   Background,
   Controls,
   MiniMap,
   addEdge,
   useNodesState,
   useEdgesState,
+  useReactFlow,
   type Connection,
   type Node,
   type Edge,
@@ -22,6 +24,7 @@ import {
   Play,
   Loader2,
   ChevronLeft,
+  ChevronRight,
   ShieldCheck,
   Sparkles,
   Bug,
@@ -29,8 +32,11 @@ import {
   Redo2,
   Copy,
   ClipboardPaste,
+  Keyboard,
+  Circle,
 } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { CustomNode } from "./custom-node";
 import { NodePanel } from "./node-panel";
@@ -40,7 +46,7 @@ import { AiGenerateDialog } from "./ai-generate-dialog";
 import { DebuggerPanel } from "./debugger-panel";
 import { saveWorkflowGraph } from "@/actions/workflows";
 import { validateWorkflow, type ValidationResult } from "@/lib/workflow-validator";
-import { NodeDefinition, WorkflowNodeConfig } from "@/types";
+import { NODE_DEFINITIONS, NodeDefinition, WorkflowNodeConfig } from "@/types";
 import type { WorkflowWithDetails } from "@/types";
 import {
   useHistory,
@@ -67,6 +73,15 @@ interface WorkflowBuilderProps {
 }
 
 export function WorkflowBuilder({ workflow }: WorkflowBuilderProps) {
+  return (
+    <ReactFlowProvider>
+      <WorkflowBuilderInner workflow={workflow} />
+    </ReactFlowProvider>
+  );
+}
+
+function WorkflowBuilderInner({ workflow }: WorkflowBuilderProps) {
+  const { screenToFlowPosition } = useReactFlow();
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -77,6 +92,7 @@ export function WorkflowBuilder({ workflow }: WorkflowBuilderProps) {
   const [debugMode, setDebugMode] = useState(false);
   const [debugStatuses, setDebugStatuses] = useState<Record<string, DebugStatus | undefined>>({});
   const [debugSnapshot, setDebugSnapshot] = useState<{ nodes: Node[]; edges: Edge[] } | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
 
   const clipboardRef = useRef<ClipboardData | null>(null);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -172,13 +188,13 @@ export function WorkflowBuilder({ workflow }: WorkflowBuilderProps) {
     [nodes, edges, setEdges, history]
   );
 
-  function addNode(def: NodeDefinition) {
+  function addNode(def: NodeDefinition, position?: { x: number; y: number }) {
     history.push(nodes, edges);
     const id = nanoid();
     const newNode: Node = {
       id,
       type: "custom",
-      position: { x: 200 + Math.random() * 200, y: 150 + Math.random() * 200 },
+      position: position ?? { x: 200 + Math.random() * 200, y: 150 + Math.random() * 200 },
       data: {
         label: def.label,
         nodeType: def.type,
@@ -189,6 +205,21 @@ export function WorkflowBuilder({ workflow }: WorkflowBuilderProps) {
     };
     setNodes((prev) => [...prev, newNode]);
     setValidationResult(null);
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const type = e.dataTransfer.getData("application/reactflow");
+    if (!type) return;
+    const def = NODE_DEFINITIONS.find((d) => d.type === type);
+    if (!def) return;
+    const position = screenToFlowPosition({ x: e.clientX, y: e.clientY });
+    addNode(def, position);
+  }
+
+  function onDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
   }
 
   function deleteSelectedNodes() {
@@ -406,57 +437,99 @@ export function WorkflowBuilder({ workflow }: WorkflowBuilderProps) {
   return (
     <div className="flex h-[calc(100vh-64px)] w-full overflow-hidden">
       {/* Sidebar */}
-      <div className="flex w-60 shrink-0 flex-col border-r border-zinc-800 bg-zinc-950 overflow-y-auto">
-        <div className="flex items-center gap-2 border-b border-zinc-800 p-3">
+      <div className="flex w-64 shrink-0 flex-col border-r border-zinc-800 bg-zinc-950">
+        {/* Top header: back + brand */}
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-zinc-800 px-3">
           <Link
             href="/workflows"
-            className="flex items-center gap-1 text-xs text-zinc-500 hover:text-white transition-colors"
+            className="flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-zinc-500 hover:bg-zinc-800 hover:text-white transition-colors"
           >
             <ChevronLeft className="h-3.5 w-3.5" />
-            Back
+            Workflows
           </Link>
         </div>
-        <div className="p-3 border-b border-zinc-800">
-          <p className="font-semibold text-white text-sm truncate">{workflow.name}</p>
-          {saveStatus === "pending" && (
-            <p className="text-xs text-amber-400 mt-0.5">Unsaved changes</p>
-          )}
-          {saveStatus === "saving" && (
-            <p className="text-xs text-zinc-400 mt-0.5 flex items-center gap-1">
-              <Loader2 className="h-2.5 w-2.5 animate-spin" />
-              Saving…
-            </p>
-          )}
-          {saveStatus === "saved" && savedAt && (
-            <p className="text-xs text-zinc-500 mt-0.5">
-              Saved {savedAt.toLocaleTimeString()}
-            </p>
-          )}
-          {saveStatus === "idle" && savedAt && (
-            <p className="text-xs text-zinc-600 mt-0.5">
-              Saved {savedAt.toLocaleTimeString()}
-            </p>
-          )}
-        </div>
 
-        {/* Keyboard shortcuts hint */}
-        <div className="p-3 border-b border-zinc-800 space-y-1">
-          <p className="text-[10px] text-zinc-600 uppercase tracking-wide mb-1.5">Shortcuts</p>
-          {[
-            ["Ctrl+Z / Y", "Undo / Redo"],
-            ["Ctrl+C / V", "Copy / Paste"],
-            ["Ctrl+D", "Duplicate"],
-            ["Ctrl+S", "Save"],
-            ["Delete", "Remove node"],
-          ].map(([key, label]) => (
-            <div key={key} className="flex justify-between">
-              <kbd className="text-[10px] text-zinc-500 bg-zinc-900 rounded px-1">{key}</kbd>
-              <span className="text-[10px] text-zinc-600">{label}</span>
+        {/* Workflow name + save status */}
+        <div className="flex shrink-0 items-center gap-3 border-b border-zinc-800 px-3 py-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-white truncate leading-tight">
+              {workflow.name}
+            </p>
+            <div className="mt-0.5 flex items-center gap-1.5">
+              {saveStatus === "pending" && (
+                <>
+                  <Circle className="h-1.5 w-1.5 fill-amber-400 text-amber-400" />
+                  <p className="text-[10px] text-amber-400">Unsaved changes</p>
+                </>
+              )}
+              {saveStatus === "saving" && (
+                <>
+                  <Loader2 className="h-2.5 w-2.5 animate-spin text-zinc-500" />
+                  <p className="text-[10px] text-zinc-500">Saving…</p>
+                </>
+              )}
+              {saveStatus === "saved" && savedAt && (
+                <>
+                  <Circle className="h-1.5 w-1.5 fill-emerald-500 text-emerald-500" />
+                  <p className="text-[10px] text-emerald-600">
+                    Saved {savedAt.toLocaleTimeString()}
+                  </p>
+                </>
+              )}
+              {saveStatus === "idle" && savedAt && (
+                <p className="text-[10px] text-zinc-700">
+                  Saved {savedAt.toLocaleTimeString()}
+                </p>
+              )}
+              {saveStatus === "idle" && !savedAt && (
+                <p className="text-[10px] text-zinc-700">Ready</p>
+              )}
             </div>
-          ))}
+          </div>
         </div>
 
-        <NodePanel onAddNode={addNode} />
+        {/* Node panel — takes remaining space, scrolls internally */}
+        <div className="flex-1 min-h-0">
+          <NodePanel onAddNode={addNode} />
+        </div>
+
+        {/* Collapsible keyboard shortcuts */}
+        <div className="shrink-0 border-t border-zinc-800">
+          <button
+            onClick={() => setShowShortcuts((v) => !v)}
+            className="flex w-full items-center justify-between px-3 py-2.5 text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors"
+          >
+            <span className="flex items-center gap-1.5">
+              <Keyboard className="h-3 w-3" />
+              Keyboard shortcuts
+            </span>
+            <ChevronRight
+              className={cn(
+                "h-3 w-3 transition-transform duration-150",
+                showShortcuts && "rotate-90"
+              )}
+            />
+          </button>
+          {showShortcuts && (
+            <div className="border-t border-zinc-900 px-3 pb-3 pt-2.5 space-y-2">
+              {[
+                ["Ctrl+Z / Y", "Undo / Redo"],
+                ["Ctrl+C / V", "Copy / Paste"],
+                ["Ctrl+D", "Duplicate"],
+                ["Ctrl+S", "Save"],
+                ["Delete", "Remove node"],
+                ["Shift+drag", "Multi-select"],
+              ].map(([key, label]) => (
+                <div key={key} className="flex items-center justify-between gap-2">
+                  <kbd className="shrink-0 rounded bg-zinc-900 px-1.5 py-0.5 text-[9px] font-mono text-zinc-500">
+                    {key}
+                  </kbd>
+                  <span className="text-[10px] text-zinc-600 text-right">{label}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Canvas */}
@@ -474,6 +547,8 @@ export function WorkflowBuilder({ workflow }: WorkflowBuilderProps) {
           onNodeClick={(_, node) => setSelectedNodeId(node.id)}
           onPaneClick={() => setSelectedNodeId(null)}
           onNodeDragStart={() => history.push(nodes, edges)}
+          onDrop={onDrop}
+          onDragOver={onDragOver}
           fitView
           className="bg-zinc-950"
           deleteKeyCode={null}
@@ -486,7 +561,7 @@ export function WorkflowBuilder({ workflow }: WorkflowBuilderProps) {
             gap={20}
             size={1.5}
           />
-          <Controls className="[&>button]:bg-zinc-900 [&>button]:border-zinc-700 [&>button]:text-zinc-400 [&>button:hover]:bg-zinc-800" />
+          <Controls />
           <MiniMap
             className="bg-zinc-900! border-zinc-800!"
             nodeColor={(n) =>
@@ -627,7 +702,7 @@ export function WorkflowBuilder({ workflow }: WorkflowBuilderProps) {
           <NodeSettings
             node={{
               id: selectedNode.id,
-              type: selectedNodeData.nodeType as import("@/types").NodeType,
+              type: selectedNodeData.nodeType,
               label: selectedNodeData.label,
               config: selectedNodeData.config ?? {},
               workflowId: workflow.id,

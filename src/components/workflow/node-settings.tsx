@@ -4,7 +4,7 @@ import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DynamicNodeForm } from "./dynamic-node-form";
 import { getNodeSchema } from "@/lib/node-schemas";
-import type { WorkflowNodeData, WorkflowNodeConfig, NodeType } from "@/types";
+import type { WorkflowNodeData, WorkflowNodeConfig } from "@/types";
 
 interface NodeSettingsProps {
   node: WorkflowNodeData;
@@ -13,7 +13,7 @@ interface NodeSettingsProps {
 }
 
 export function NodeSettings({ node, onClose, onSave }: NodeSettingsProps) {
-  const schema = getNodeSchema(node.type as NodeType);
+  const schema = getNodeSchema(node.type);
 
   function handleSave(nodeId: string, config: Record<string, unknown>, label: string) {
     onSave(nodeId, config as WorkflowNodeConfig, label);

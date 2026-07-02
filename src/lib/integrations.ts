@@ -7,6 +7,16 @@ export type IntegrationCategory =
 
 export type IntegrationAuthType = "oauth" | "apikey" | "none";
 
+export interface OAuthConfig {
+  authorizationUrl: string;
+  tokenUrl: string;
+  scopes: string[];
+  clientIdEnv: string;
+  clientSecretEnv: string;
+  tokenExchange: "body" | "basic_auth";
+  additionalAuthParams?: Record<string, string>;
+}
+
 export interface IntegrationDefinition {
   slug: string;
   name: string;
@@ -16,7 +26,7 @@ export interface IntegrationDefinition {
   color: string;
   bgColor: string;
   iconText: string;
-  oauthProvider?: string;
+  oauthConfig?: OAuthConfig;
   apiKeyLabel?: string;
   apiKeyPlaceholder?: string;
   docsUrl?: string;
@@ -45,7 +55,18 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
     color: "#ea4335",
     bgColor: "#2c1210",
     iconText: "Gm",
-    oauthProvider: "google",
+    oauthConfig: {
+      authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+      tokenUrl: "https://oauth2.googleapis.com/token",
+      scopes: [
+        "https://www.googleapis.com/auth/gmail.modify",
+        "https://www.googleapis.com/auth/userinfo.email",
+      ],
+      clientIdEnv: "GOOGLE_CLIENT_ID",
+      clientSecretEnv: "GOOGLE_CLIENT_SECRET",
+      tokenExchange: "body",
+      additionalAuthParams: { access_type: "offline", prompt: "consent" },
+    },
   },
   {
     slug: "slack",
@@ -56,6 +77,14 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
     color: "#4a154b",
     bgColor: "#1a0a1b",
     iconText: "Sl",
+    oauthConfig: {
+      authorizationUrl: "https://slack.com/oauth/v2/authorize",
+      tokenUrl: "https://slack.com/api/oauth.v2.access",
+      scopes: ["chat:write", "channels:read", "users:read"],
+      clientIdEnv: "SLACK_CLIENT_ID",
+      clientSecretEnv: "SLACK_CLIENT_SECRET",
+      tokenExchange: "body",
+    },
   },
   {
     slug: "discord",
@@ -66,6 +95,14 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
     color: "#5865f2",
     bgColor: "#0e1030",
     iconText: "Dc",
+    oauthConfig: {
+      authorizationUrl: "https://discord.com/api/oauth2/authorize",
+      tokenUrl: "https://discord.com/api/oauth2/token",
+      scopes: ["identify", "email", "guilds"],
+      clientIdEnv: "DISCORD_CLIENT_ID",
+      clientSecretEnv: "DISCORD_CLIENT_SECRET",
+      tokenExchange: "body",
+    },
   },
   {
     slug: "notion",
@@ -76,6 +113,15 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
     color: "#ffffff",
     bgColor: "#1a1a1a",
     iconText: "No",
+    oauthConfig: {
+      authorizationUrl: "https://api.notion.com/v1/oauth/authorize",
+      tokenUrl: "https://api.notion.com/v1/oauth/token",
+      scopes: [],
+      clientIdEnv: "NOTION_CLIENT_ID",
+      clientSecretEnv: "NOTION_CLIENT_SECRET",
+      tokenExchange: "basic_auth",
+      additionalAuthParams: { owner: "user" },
+    },
   },
   {
     slug: "google-sheets",
@@ -86,7 +132,18 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
     color: "#34a853",
     bgColor: "#0a2010",
     iconText: "GS",
-    oauthProvider: "google",
+    oauthConfig: {
+      authorizationUrl: "https://accounts.google.com/o/oauth2/v2/auth",
+      tokenUrl: "https://oauth2.googleapis.com/token",
+      scopes: [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/userinfo.email",
+      ],
+      clientIdEnv: "GOOGLE_CLIENT_ID",
+      clientSecretEnv: "GOOGLE_CLIENT_SECRET",
+      tokenExchange: "body",
+      additionalAuthParams: { access_type: "offline", prompt: "consent" },
+    },
   },
   {
     slug: "github",
@@ -97,6 +154,14 @@ export const INTEGRATIONS: IntegrationDefinition[] = [
     color: "#f0f6fc",
     bgColor: "#161b22",
     iconText: "GH",
+    oauthConfig: {
+      authorizationUrl: "https://github.com/login/oauth/authorize",
+      tokenUrl: "https://github.com/login/oauth/access_token",
+      scopes: ["repo", "user:email"],
+      clientIdEnv: "GITHUB_CLIENT_ID",
+      clientSecretEnv: "GITHUB_CLIENT_SECRET",
+      tokenExchange: "body",
+    },
   },
   {
     slug: "webhook",

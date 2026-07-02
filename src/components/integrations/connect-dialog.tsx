@@ -2,7 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, ExternalLink, CheckCircle2, Unplug, Key, Zap } from "lucide-react";
+import {
+  Loader2,
+  ExternalLink,
+  CheckCircle2,
+  Unplug,
+  Key,
+  Zap,
+  Terminal,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,14 +24,21 @@ import {
 } from "@/components/ui/dialog";
 import type { IntegrationDefinition } from "@/lib/integrations";
 import { connectApiKey, connectNone, disconnectIntegration } from "@/actions/integrations";
+import { IntegrationIcon } from "./integration-icon";
 
 interface ConnectDialogProps {
   integration: IntegrationDefinition;
   connected: boolean;
+  isConfigured: boolean;
   children: React.ReactNode;
 }
 
-export function ConnectDialog({ integration, connected, children }: ConnectDialogProps) {
+export function ConnectDialog({
+  integration,
+  connected,
+  isConfigured,
+  children,
+}: ConnectDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [apiKey, setApiKey] = useState("");
@@ -78,22 +93,35 @@ export function ConnectDialog({ integration, connected, children }: ConnectDialo
     handleClose();
   }
 
+  const oauthCfg = integration.oauthConfig;
+  const authLabel =
+    integration.authType === "none"
+      ? "No auth required"
+      : integration.authType === "apikey"
+      ? "API Key"
+      : "OAuth 2.0";
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose(); else setOpen(true); }}>
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) handleClose();
+        else setOpen(true);
+      }}
+    >
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-3 mb-1">
-            <div
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-xs font-bold"
-              style={{ backgroundColor: integration.bgColor, color: integration.color }}
-            >
-              {integration.iconText}
-            </div>
+            <IntegrationIcon
+              slug={integration.slug}
+              color={integration.color}
+              bgColor={integration.bgColor}
+            />
             <div>
               <DialogTitle>{integration.name}</DialogTitle>
               <DialogDescription className="text-xs mt-0.5 capitalize">
-                {integration.category} · {integration.authType === "none" ? "No auth required" : integration.authType === "apikey" ? "API Key" : "OAuth 2.0"}
+                {integration.category} · {authLabel}
               </DialogDescription>
             </div>
           </div>
@@ -105,7 +133,9 @@ export function ConnectDialog({ integration, connected, children }: ConnectDialo
           <div className="flex flex-col gap-4 mt-2">
             <div className="flex items-center gap-2.5 rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-3">
               <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
-              <p className="text-sm text-emerald-300">This integration is connected and active.</p>
+              <p className="text-sm text-emerald-300">
+                This integration is connected and active.
+              </p>
             </div>
 
             {error && <p className="text-xs text-red-400">{error}</p>}
@@ -131,6 +161,77 @@ export function ConnectDialog({ integration, connected, children }: ConnectDialo
           </div>
         ) : (
           <div className="flex flex-col gap-4 mt-2">
+            {/* OAuth — not configured */}
+            {integration.authType === "oauth" && !isConfigured && oauthCfg && (
+              <div className="flex flex-col gap-3">
+                <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4 space-y-3">
+                  <p className="text-sm text-amber-300 font-medium">
+                    Environment variables required
+                  </p>
+                  <p className="text-xs text-zinc-400">
+                    Add these to your <code className="text-zinc-300">.env.local</code> to enable{" "}
+                    {integration.name} OAuth:
+                  </p>
+                  <div className="rounded bg-zinc-950 p-3 font-mono text-xs text-zinc-300 space-y-1">
+                    <p>
+                      <span className="text-amber-400">{oauthCfg.clientIdEnv}</span>
+                      =your_client_id
+                    </p>
+                    <p>
+                      <span className="text-amber-400">{oauthCfg.clientSecretEnv}</span>
+                      =your_client_secret
+                    </p>
+                  </div>
+                  <p className="text-xs text-zinc-500">
+                    Callback URL to register with the provider:
+                  </p>
+                  <div className="flex items-center gap-2 rounded bg-zinc-950 px-3 py-2 font-mono text-xs text-zinc-300">
+                    <Terminal className="h-3 w-3 text-zinc-500 shrink-0" />
+                    {typeof window !== "undefined"
+                      ? `${window.location.origin}/api/integrations/oauth/callback`
+                      : "/api/integrations/oauth/callback"}
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <Button variant="outline" onClick={handleClose}>
+                    Close
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* OAuth — configured */}
+            {integration.authType === "oauth" && isConfigured && (
+              <div className="flex flex-col gap-3">
+                <div className="rounded-lg border border-zinc-800 bg-zinc-800/40 px-4 py-3 text-sm text-zinc-400">
+                  You&apos;ll be redirected to {integration.name} to authorize access. We only
+                  request the minimum permissions needed.
+                </div>
+
+                {error && <p className="text-xs text-red-400">{error}</p>}
+
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={handleClose}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleOAuthConnect}
+                    disabled={isPending}
+                    className="gap-2"
+                  >
+                    {isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <ExternalLink className="h-4 w-4" />
+                    )}
+                    Connect with {integration.name}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* API Key */}
             {integration.authType === "apikey" && (
               <div className="flex flex-col gap-3">
                 <div className="flex flex-col gap-1.5">
@@ -162,8 +263,14 @@ export function ConnectDialog({ integration, connected, children }: ConnectDialo
                 {error && <p className="text-xs text-red-400">{error}</p>}
 
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={handleClose}>Cancel</Button>
-                  <Button onClick={handleApiKeyConnect} disabled={isPending || !apiKey.trim()} className="gap-2">
+                  <Button variant="outline" onClick={handleClose}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleApiKeyConnect}
+                    disabled={isPending || !apiKey.trim()}
+                    className="gap-2"
+                  >
                     {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
                     Connect
                   </Button>
@@ -171,44 +278,22 @@ export function ConnectDialog({ integration, connected, children }: ConnectDialo
               </div>
             )}
 
-            {integration.authType === "oauth" && (
-              <div className="flex flex-col gap-3">
-                <div className="rounded-lg border border-zinc-800 bg-zinc-800/40 px-4 py-3 text-sm text-zinc-400">
-                  You&apos;ll be redirected to {integration.name} to authorize access. We only request the minimum permissions needed.
-                </div>
-
-                {error && <p className="text-xs text-red-400">{error}</p>}
-
-                <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={handleClose}>Cancel</Button>
-                  <Button onClick={handleOAuthConnect} disabled={isPending} className="gap-2">
-                    {isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ExternalLink className="h-4 w-4" />
-                    )}
-                    Connect with {integration.name}
-                  </Button>
-                </div>
-              </div>
-            )}
-
+            {/* No auth */}
             {integration.authType === "none" && (
               <div className="flex flex-col gap-3">
                 <div className="rounded-lg border border-zinc-800 bg-zinc-800/40 px-4 py-3 text-sm text-zinc-400">
-                  This integration requires no authentication. Enable it to start using it in your workflows.
+                  This integration requires no authentication. Enable it to start using it in your
+                  workflows.
                 </div>
 
                 {error && <p className="text-xs text-red-400">{error}</p>}
 
                 <div className="flex justify-end gap-2">
-                  <Button variant="outline" onClick={handleClose}>Cancel</Button>
+                  <Button variant="outline" onClick={handleClose}>
+                    Cancel
+                  </Button>
                   <Button onClick={handleNoneConnect} disabled={isPending} className="gap-2">
-                    {isPending ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Zap className="h-4 w-4" />
-                    )}
+                    {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
                     Enable
                   </Button>
                 </div>

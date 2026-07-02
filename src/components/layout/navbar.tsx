@@ -18,7 +18,7 @@ interface NavbarProps {
 
 export function Navbar({ user }: NavbarProps) {
   return (
-    <header className="fixed top-0 right-0 left-60 z-30 flex h-16 items-center justify-between border-b border-zinc-800 bg-zinc-950/90 px-6 backdrop-blur">
+    <header className="fixed top-0 right-0 left-56 z-30 flex h-14 items-center justify-between border-b border-zinc-800/80 bg-zinc-950/95 px-6 backdrop-blur">
       <div />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>

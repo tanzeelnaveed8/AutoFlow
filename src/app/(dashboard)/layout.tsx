@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Navbar } from "@/components/layout/navbar";
+import { LayoutShell, PagePadding } from "@/components/layout/layout-shell";
 
 export default async function DashboardLayout({
   children,
@@ -14,12 +15,12 @@ export default async function DashboardLayout({
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <div className="flex flex-1 flex-col pl-60">
+      <LayoutShell>
         <Navbar user={session.user!} />
-        <main className="flex-1 pt-16">
-          <div className="p-6">{children}</div>
+        <main className="flex-1 pt-14">
+          <PagePadding>{children}</PagePadding>
         </main>
-      </div>
+      </LayoutShell>
     </div>
   );
 }

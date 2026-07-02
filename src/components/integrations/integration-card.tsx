@@ -1,32 +1,49 @@
 "use client";
 
-import { CheckCircle2, Plug, Settings } from "lucide-react";
+import { CheckCircle2, Plug, Settings, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import type { IntegrationDefinition } from "@/lib/integrations";
 import { ConnectDialog } from "./connect-dialog";
+import { IntegrationIcon } from "./integration-icon";
 
 interface IntegrationCardProps {
   integration: IntegrationDefinition;
   connected: boolean;
   connectedAt?: Date;
+  isConfigured: boolean;
 }
 
-export function IntegrationCard({ integration, connected, connectedAt }: IntegrationCardProps) {
+export function IntegrationCard({
+  integration,
+  connected,
+  connectedAt,
+  isConfigured,
+}: IntegrationCardProps) {
   return (
     <div className="group relative flex flex-col rounded-xl border border-zinc-800 bg-zinc-900 p-5 transition-all hover:border-zinc-700 hover:bg-zinc-900/80">
       <div className="flex items-start justify-between gap-3 mb-4">
-        <div
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-xs font-bold tracking-wide"
-          style={{ backgroundColor: integration.bgColor, color: integration.color, border: `1px solid ${integration.color}22` }}
-        >
-          {integration.iconText}
-        </div>
+        <IntegrationIcon
+          slug={integration.slug}
+          color={integration.color}
+          bgColor={integration.bgColor}
+        />
 
         {connected ? (
-          <Badge variant="outline" className="shrink-0 gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-medium">
+          <Badge
+            variant="outline"
+            className="shrink-0 gap-1 border-emerald-500/30 bg-emerald-500/10 text-emerald-400 text-xs font-medium"
+          >
             <CheckCircle2 className="h-3 w-3" />
             Connected
+          </Badge>
+        ) : !isConfigured ? (
+          <Badge
+            variant="outline"
+            className="shrink-0 gap-1 border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-medium"
+          >
+            <AlertTriangle className="h-3 w-3" />
+            Setup required
           </Badge>
         ) : (
           <Badge variant="secondary" className="shrink-0 text-xs font-medium">
@@ -51,7 +68,11 @@ export function IntegrationCard({ integration, connected, connectedAt }: Integra
                   Since {new Date(connectedAt).toLocaleDateString()}
                 </span>
               )}
-              <ConnectDialog integration={integration} connected={connected}>
+              <ConnectDialog
+                integration={integration}
+                connected={connected}
+                isConfigured={isConfigured}
+              >
                 <Button size="sm" variant="outline" className="gap-1.5 h-7 text-xs">
                   <Settings className="h-3 w-3" />
                   Manage
@@ -59,10 +80,25 @@ export function IntegrationCard({ integration, connected, connectedAt }: Integra
               </ConnectDialog>
             </>
           ) : (
-            <ConnectDialog integration={integration} connected={connected}>
-              <Button size="sm" className="gap-1.5 h-7 text-xs">
-                <Plug className="h-3 w-3" />
-                Connect
+            <ConnectDialog
+              integration={integration}
+              connected={connected}
+              isConfigured={isConfigured}
+            >
+              <Button
+                size="sm"
+                className={`gap-1.5 h-7 text-xs ${
+                  !isConfigured
+                    ? "bg-amber-600 hover:bg-amber-500"
+                    : ""
+                }`}
+              >
+                {!isConfigured ? (
+                  <AlertTriangle className="h-3 w-3" />
+                ) : (
+                  <Plug className="h-3 w-3" />
+                )}
+                {!isConfigured ? "Setup" : "Connect"}
               </Button>
             </ConnectDialog>
           )}

@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Zap, Loader2 } from "lucide-react";
+import Image from "next/image";
+import logoImage from "@/assets/logoo.png";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,9 +37,7 @@ export default function RegisterPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col items-center gap-2">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-600">
-          <Zap className="h-6 w-6 text-white" />
-        </div>
+        <Image src={logoImage} alt="AutoFlow" width={48} height={48} className="rounded-xl" />
         <h1 className="text-2xl font-bold text-white">Create account</h1>
         <p className="text-sm text-zinc-400">Start automating your workflows</p>
       </div>

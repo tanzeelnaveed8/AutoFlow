@@ -50,6 +50,27 @@ body {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: none;
+  /* Dark theme CSS variable overrides */
+  --xy-controls-button-background-color-default: #18181b;
+  --xy-controls-button-color-default: #a1a1aa;
+  --xy-controls-button-border-color-default: #3f3f46;
+}
+
+.react-flow__controls-button {
+  background: #18181b !important;
+  border-color: #3f3f46 !important;
+  color: #a1a1aa !important;
+  fill: #a1a1aa !important;
+}
+
+.react-flow__controls-button:hover {
+  background: #27272a !important;
+  color: #e4e4e7 !important;
+  fill: #e4e4e7 !important;
+}
+
+.react-flow__controls-button svg {
+  fill: currentColor;
 }
 
 .react-flow__minimap {

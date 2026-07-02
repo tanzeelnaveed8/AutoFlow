@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { redirect, notFound } from "next/navigation";
-import type { NodeType, WorkflowNodeConfig } from "@/types";
+import type { WorkflowNodeConfig } from "@/types";
 import { WorkflowBuilder } from "@/components/workflow/workflow-builder";
 
 export default async function WorkflowPage({
@@ -25,7 +25,7 @@ export default async function WorkflowPage({
     ...workflow,
     nodes: workflow.nodes.map((n) => ({
       id: n.id,
-      type: n.type as NodeType,
+      type: n.type,
       label: n.label,
       config: n.config as WorkflowNodeConfig,
       workflowId: n.workflowId,

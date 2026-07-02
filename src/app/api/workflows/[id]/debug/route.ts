@@ -26,7 +26,7 @@ export async function POST(
   };
 
   try {
-    const output = await executeNodeStandalone(nodeType, config, input ?? {});
+    const output = await executeNodeStandalone(nodeType, config, input ?? {}, { userId: session.user.id });
     return NextResponse.json({ output });
   } catch (error) {
     return NextResponse.json({
