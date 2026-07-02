@@ -4,10 +4,32 @@ import {
   SiNotion,
   SiGooglesheets,
   SiGithub,
+  SiAnthropic,
+  SiTelegram,
+  SiWhatsapp,
+  SiMailchimp,
+  SiResend,
+  SiGoogledrive,
+  SiDropbox,
+  SiAirtable,
+  SiJira,
+  SiLinear,
+  SiTrello,
+  SiAsana,
+  SiClickup,
+  SiHubspot,
+  SiStripe,
+  SiSupabase,
+  SiVercel,
+  SiShopify,
+  SiCloudflare,
+  SiPostgresql,
+  SiMongodb,
+  SiRedis,
+  SiMysql,
 } from "react-icons/si";
 import { Webhook, Globe, Sparkles } from "lucide-react";
 
-// Slack's brand SVG path (Simple Icons)
 function SlackIcon({ color, size }: { color: string; size: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
@@ -16,7 +38,6 @@ function SlackIcon({ color, size }: { color: string; size: number }) {
   );
 }
 
-// OpenAI brand SVG path (Simple Icons)
 function OpenAiIcon({ color, size }: { color: string; size: number }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
@@ -25,38 +46,74 @@ function OpenAiIcon({ color, size }: { color: string; size: number }) {
   );
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const ICON_MAP: Record<string, React.ElementType | "openai" | "slack"> = {
+const ICON_MAP: Record<string, React.ElementType | "openai" | "slack" | null> = {
   openai: "openai",
+  anthropic: SiAnthropic,
+  huggingface: null,
   gmail: SiGmail,
   slack: "slack",
   discord: SiDiscord,
+  telegram: SiTelegram,
+  whatsapp: SiWhatsapp,
+  twilio: null,
+  sendgrid: null,
+  resend: SiResend,
+  mailchimp: SiMailchimp,
   notion: SiNotion,
   "google-sheets": SiGooglesheets,
+  "google-drive": SiGoogledrive,
+  dropbox: SiDropbox,
+  airtable: SiAirtable,
+  jira: SiJira,
+  linear: SiLinear,
+  trello: SiTrello,
+  asana: SiAsana,
+  clickup: SiClickup,
+  hubspot: SiHubspot,
   github: SiGithub,
+  stripe: SiStripe,
+  supabase: SiSupabase,
+  vercel: SiVercel,
+  shopify: SiShopify,
+  aws: null,
+  cloudflare: SiCloudflare,
   webhook: Webhook,
   "http-request": Globe,
+  postgresql: SiPostgresql,
+  mongodb: SiMongodb,
+  redis: SiRedis,
+  mysql: SiMysql,
 };
 
 interface IntegrationIconProps {
   slug: string;
   color: string;
   bgColor: string;
+  iconText: string;
+  size?: number;
 }
 
-export function IntegrationIcon({ slug, color, bgColor }: IntegrationIconProps) {
+export function IntegrationIcon({ slug, color, bgColor, iconText, size = 22 }: IntegrationIconProps) {
   const entry = ICON_MAP[slug];
 
   let iconEl: React.ReactNode;
   if (entry === "openai") {
-    iconEl = <OpenAiIcon color={color} size={22} />;
+    iconEl = <OpenAiIcon color={color} size={size} />;
   } else if (entry === "slack") {
-    iconEl = <SlackIcon color={color} size={22} />;
-  } else if (entry) {
+    iconEl = <SlackIcon color={color} size={size} />;
+  } else if (entry && typeof entry !== "string") {
     const Icon = entry as React.ElementType;
-    iconEl = <Icon style={{ color, width: 22, height: 22 }} />;
+    iconEl = <Icon style={{ color, width: size, height: size }} />;
   } else {
-    iconEl = <Sparkles style={{ color, width: 20, height: 20 }} />;
+    // Text fallback
+    iconEl = (
+      <span
+        className="font-bold text-[10px] tracking-tight leading-none"
+        style={{ color, fontSize: iconText.length > 2 ? 9 : 11 }}
+      >
+        {iconText}
+      </span>
+    );
   }
 
   return (

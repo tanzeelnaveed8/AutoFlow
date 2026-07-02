@@ -117,6 +117,7 @@ export function ConnectDialog({
               slug={integration.slug}
               color={integration.color}
               bgColor={integration.bgColor}
+              iconText={integration.iconText}
             />
             <div>
               <DialogTitle>{integration.name}</DialogTitle>
