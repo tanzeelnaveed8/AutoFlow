@@ -17,7 +17,7 @@ export default async function DashboardLayout({
       <Sidebar />
       <LayoutShell>
         <Navbar user={session.user!} />
-        <main className="flex-1 pt-14">
+        <main className="flex-1">
           <PagePadding>{children}</PagePadding>
         </main>
       </LayoutShell>

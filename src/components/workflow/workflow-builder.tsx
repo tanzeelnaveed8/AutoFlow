@@ -435,7 +435,7 @@ function WorkflowBuilderInner({ workflow }: WorkflowBuilderProps) {
   }, [nodes, edges, selectedNodeId, debugMode]);
 
   return (
-    <div className="flex h-[calc(100vh-64px)] w-full overflow-hidden">
+    <div className="flex h-screen w-full overflow-hidden">
       {/* Sidebar */}
       <div className="flex w-64 shrink-0 flex-col border-r border-zinc-800 bg-zinc-950">
         {/* Top header: back + brand */}

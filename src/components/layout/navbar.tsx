@@ -1,5 +1,6 @@
 "use client";
 
+import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { User, LogOut, ChevronDown } from "lucide-react";
 import {
@@ -17,6 +18,9 @@ interface NavbarProps {
 }
 
 export function Navbar({ user }: NavbarProps) {
+  const pathname = usePathname();
+  if (/^\/workflows\/[^/]+/.test(pathname)) return null;
+
   return (
     <header className="fixed top-0 right-0 left-56 z-30 flex h-14 items-center justify-between border-b border-zinc-800/80 bg-zinc-950/95 px-6 backdrop-blur">
       <div />

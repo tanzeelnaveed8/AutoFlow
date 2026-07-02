@@ -18,5 +18,5 @@ export function PagePadding({ children }: { children: React.ReactNode }) {
   const isEditor = /^\/workflows\/[^/]+/.test(pathname);
 
   if (isEditor) return <>{children}</>;
-  return <div className="p-6">{children}</div>;
+  return <div className="pt-14 p-6">{children}</div>;
 }
